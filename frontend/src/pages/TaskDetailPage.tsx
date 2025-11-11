@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import { formatThaiDate } from '@/lib/thaiDate';
 import {
   MapPin,
   Calendar,
@@ -13,6 +14,18 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { useState } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, Circle as LeafletCircle } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import { getMapboxTileUrl, getMapboxAttribution } from '@/lib/mapbox';
+import L from 'leaflet';
+
+// Fix for default marker icon in production
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
 
 interface ChecklistItem {
   id: string;
@@ -200,11 +213,37 @@ export default function TaskDetailPage() {
             <h2 className="text-xl font-semibold text-gray-900 mb-4">
               Location
             </h2>
-            <div className="aspect-video bg-gray-200 rounded-lg mb-4 flex items-center justify-center">
-              <MapPin className="h-12 w-12 text-gray-400" />
-              <span className="ml-2 text-gray-500">
-                Map: {task.location.latitude}, {task.location.longitude}
-              </span>
+            <div className="aspect-video bg-gray-200 rounded-lg mb-4 overflow-hidden">
+              <MapContainer
+                center={[task.location.latitude, task.location.longitude]}
+                zoom={15}
+                style={{ height: '100%', width: '100%' }}
+                scrollWheelZoom={false}
+              >
+                <TileLayer
+                  attribution={getMapboxAttribution()}
+                  url={getMapboxTileUrl('streets-v12')}
+                  tileSize={512}
+                  zoomOffset={-1}
+                />
+                <Marker position={[task.location.latitude, task.location.longitude]}>
+                  <Popup>
+                    <div className="p-2">
+                      <h3 className="font-semibold text-sm">{task.title}</h3>
+                      <p className="text-xs text-gray-600 mt-1">{task.location.address}</p>
+                    </div>
+                  </Popup>
+                </Marker>
+                <LeafletCircle
+                  center={[task.location.latitude, task.location.longitude]}
+                  radius={task.geofenceRadius}
+                  pathOptions={{
+                    color: '#3b82f6',
+                    fillColor: '#3b82f6',
+                    fillOpacity: 0.1,
+                  }}
+                />
+              </MapContainer>
             </div>
             <div className="flex items-start gap-2">
               <MapPin className="h-5 w-5 text-gray-400 mt-0.5" />
@@ -317,7 +356,7 @@ export default function TaskDetailPage() {
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600">Submitted at:</span>
                   <span className="text-gray-900">
-                    {new Date(task.submission.submittedAt).toLocaleString()}
+                    {formatThaiDate(task.submission.submittedAt, { includeTime: true, shortFormat: false })}
                   </span>
                 </div>
                 <Link
@@ -354,11 +393,7 @@ export default function TaskDetailPage() {
                   <span className="text-sm">Due Date</span>
                 </div>
                 <p className="text-gray-900 ml-6">
-                  {new Date(task.dueDate).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })}
+                  {formatThaiDate(task.dueDate, { includeTime: true, shortFormat: false })}
                 </p>
               </div>
               <div>
@@ -367,11 +402,7 @@ export default function TaskDetailPage() {
                   <span className="text-sm">Created</span>
                 </div>
                 <p className="text-gray-900 ml-6">
-                  {new Date(task.createdAt).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })}
+                  {formatThaiDate(task.createdAt, { includeTime: false, shortFormat: false })}
                 </p>
               </div>
             </div>

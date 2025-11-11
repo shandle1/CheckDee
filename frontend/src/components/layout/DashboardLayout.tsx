@@ -5,6 +5,8 @@ import {
   FileText,
   Users,
   Users2,
+  BarChart3,
+  Settings,
   LogOut,
   Menu,
   X
@@ -24,6 +26,7 @@ export default function DashboardLayout() {
   };
 
   const isAdminOrManager = user?.role === 'admin' || user?.role === 'manager';
+  const isAdmin = user?.role === 'admin';
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -32,6 +35,10 @@ export default function DashboardLayout() {
     ...(isAdminOrManager ? [
       { name: 'Users', href: '/users', icon: Users },
       { name: 'Teams', href: '/teams', icon: Users2 },
+      { name: 'Analytics', href: '/analytics', icon: BarChart3 },
+    ] : []),
+    ...(isAdmin ? [
+      { name: 'Settings', href: '/settings', icon: Settings },
     ] : []),
   ];
 

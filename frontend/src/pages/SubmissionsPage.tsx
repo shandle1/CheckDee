@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { Search, Filter, Calendar, User, FileText, AlertCircle } from 'lucide-react';
 import api from '@/lib/api';
+import { formatThaiDate } from '@/lib/thaiDate';
 
 interface Submission {
   id: string;
@@ -210,13 +211,13 @@ export default function SubmissionsPage() {
                       <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4 text-gray-400" />
                         <span className="text-sm text-gray-900">
-                          {new Date(submission.submittedAt).toLocaleString()}
+                          {formatThaiDate(submission.submittedAt, { includeTime: true, shortFormat: true })}
                         </span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <span className="text-sm text-gray-900">
-                        {new Date(submission.checkInTime).toLocaleString()}
+                        {formatThaiDate(submission.checkInTime, { includeTime: true, shortFormat: true })}
                       </span>
                     </td>
                     <td className="px-6 py-4">
@@ -227,7 +228,7 @@ export default function SubmissionsPage() {
                           </p>
                           {submission.reviewedAt && (
                             <p className="text-xs text-gray-500">
-                              {new Date(submission.reviewedAt).toLocaleString()}
+                              {formatThaiDate(submission.reviewedAt, { includeTime: true, shortFormat: true })}
                             </p>
                           )}
                         </div>

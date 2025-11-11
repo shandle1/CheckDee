@@ -6,6 +6,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Plus, X, MapPin, ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
 import api from '@/lib/api';
+import MapLocationPicker from '@/components/MapLocationPicker';
+import ThaiDateTimePicker from '@/components/ThaiDateTimePicker';
 
 const taskSchema = z.object({
   title: z.string().min(1, 'Title is required').max(200),
@@ -148,7 +150,18 @@ export default function CreateTaskPage() {
     createTaskMutation.mutate(data);
   };
 
+  const handleLocationSelect = (location: {
+    latitude: number;
+    longitude: number;
+    address: string;
+  }) => {
+    setValue('location.latitude', location.latitude);
+    setValue('location.longitude', location.longitude);
+    setValue('location.address', location.address);
+  };
+
   const questionType = (index: number) => watch(`questions.${index}.type`);
+  const currentLocation = watch('location');
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -244,19 +257,13 @@ export default function CreateTaskPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Due Date *
-              </label>
-              <input
-                {...register('dueDate')}
-                type="datetime-local"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              <ThaiDateTimePicker
+                label="Due Date"
+                required
+                value={watch('dueDate')}
+                onChange={(value) => setValue('dueDate', value)}
+                error={errors.dueDate?.message}
               />
-              {errors.dueDate && (
-                <p className="text-red-600 text-sm mt-1">
-                  {errors.dueDate.message}
-                </p>
-              )}
             </div>
           </div>
         </div>
@@ -554,6 +561,19 @@ export default function CreateTaskPage() {
           </div>
         )}
       </form>
+
+      {/* Map Location Picker Modal */}
+      {showMapPicker && (
+        <MapLocationPicker
+          onLocationSelect={handleLocationSelect}
+          onClose={() => setShowMapPicker(false)}
+          initialLocation={
+            currentLocation.latitude && currentLocation.longitude
+              ? currentLocation
+              : undefined
+          }
+        />
+      )}
     </div>
   );
 }

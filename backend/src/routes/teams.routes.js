@@ -86,12 +86,13 @@ router.post('/',
   [
     body('name').trim().notEmpty(),
     body('description').optional().trim(),
-    body('manager_id').optional().isUUID()
+    body('manager_id').optional().isUUID(),
+    body('memberIds').optional().isArray()
   ],
   validate,
   async (req, res, next) => {
     try {
-      const { name, description, manager_id } = req.body;
+      const { name, description, manager_id, memberIds } = req.body;
 
       const result = await query(
         `INSERT INTO teams (name, description, manager_id)
@@ -100,10 +101,22 @@ router.post('/',
         [name, description || null, manager_id || null]
       );
 
+      const teamId = result.rows[0].id;
+
+      // Add members to team if provided
+      if (memberIds && memberIds.length > 0) {
+        for (const userId of memberIds) {
+          await query(
+            'UPDATE users SET team_id = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+            [teamId, userId]
+          );
+        }
+      }
+
       // Log activity
       await query(
         'INSERT INTO activity_logs (user_id, action, entity_type, entity_id, details) VALUES ($1, $2, $3, $4, $5)',
-        [req.user.id, 'team_created', 'team', result.rows[0].id, JSON.stringify({ name })]
+        [req.user.id, 'team_created', 'team', teamId, JSON.stringify({ name, memberCount: memberIds?.length || 0 })]
       );
 
       res.status(201).json(result.rows[0]);
@@ -196,6 +209,95 @@ router.delete('/:id',
       );
 
       res.json({ message: 'Team deleted successfully' });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// Add member to team
+router.post('/:id/members',
+  authorizeRoles('admin', 'manager'),
+  [
+    param('id').isUUID(),
+    body('user_id').isUUID()
+  ],
+  validate,
+  async (req, res, next) => {
+    try {
+      const { id } = req.params;
+      const { user_id } = req.body;
+
+      // Check if team exists
+      const teamResult = await query('SELECT id, name FROM teams WHERE id = $1', [id]);
+      if (teamResult.rows.length === 0) {
+        return res.status(404).json({ error: 'Team not found' });
+      }
+
+      // Update user's team
+      const userResult = await query(
+        'UPDATE users SET team_id = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING id, name, email',
+        [id, user_id]
+      );
+
+      if (userResult.rows.length === 0) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      // Log activity
+      await query(
+        'INSERT INTO activity_logs (user_id, action, entity_type, entity_id, details) VALUES ($1, $2, $3, $4, $5)',
+        [req.user.id, 'team_member_added', 'team', id, JSON.stringify({
+          teamName: teamResult.rows[0].name,
+          memberName: userResult.rows[0].name
+        })]
+      );
+
+      res.json(userResult.rows[0]);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// Remove member from team
+router.delete('/:id/members/:userId',
+  authorizeRoles('admin', 'manager'),
+  [
+    param('id').isUUID(),
+    param('userId').isUUID()
+  ],
+  validate,
+  async (req, res, next) => {
+    try {
+      const { id, userId } = req.params;
+
+      // Check if team exists
+      const teamResult = await query('SELECT id, name FROM teams WHERE id = $1', [id]);
+      if (teamResult.rows.length === 0) {
+        return res.status(404).json({ error: 'Team not found' });
+      }
+
+      // Remove user from team (set team_id to NULL)
+      const userResult = await query(
+        'UPDATE users SET team_id = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND team_id = $2 RETURNING id, name, email',
+        [userId, id]
+      );
+
+      if (userResult.rows.length === 0) {
+        return res.status(404).json({ error: 'User not found or not in this team' });
+      }
+
+      // Log activity
+      await query(
+        'INSERT INTO activity_logs (user_id, action, entity_type, entity_id, details) VALUES ($1, $2, $3, $4, $5)',
+        [req.user.id, 'team_member_removed', 'team', id, JSON.stringify({
+          teamName: teamResult.rows[0].name,
+          memberName: userResult.rows[0].name
+        })]
+      );
+
+      res.json({ message: 'Member removed successfully', user: userResult.rows[0] });
     } catch (error) {
       next(error);
     }

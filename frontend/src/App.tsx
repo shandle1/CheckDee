@@ -9,9 +9,13 @@ import TasksPage from './pages/TasksPage';
 import TaskDetailPage from './pages/TaskDetailPage';
 import CreateTaskPage from './pages/CreateTaskPage';
 import UsersPage from './pages/UsersPage';
+import UserDetailPage from './pages/UserDetailPage';
 import TeamsPage from './pages/TeamsPage';
+import TeamDetailPage from './pages/TeamDetailPage';
 import SubmissionsPage from './pages/SubmissionsPage';
 import SubmissionDetailPage from './pages/SubmissionDetailPage';
+import SettingsPage from './pages/SettingsPage';
+import AnalyticsPage from './pages/AnalyticsPage';
 
 // Layout
 import DashboardLayout from './components/layout/DashboardLayout';
@@ -68,11 +72,29 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="users/:id" element={<UserDetailPage />} />
           <Route
             path="teams"
             element={
               <ProtectedRoute allowedRoles={['admin', 'manager']}>
                 <TeamsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="teams/:id" element={<TeamDetailPage />} />
+          <Route
+            path="analytics"
+            element={
+              <ProtectedRoute allowedRoles={['admin', 'manager']}>
+                <AnalyticsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="settings"
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <SettingsPage />
               </ProtectedRoute>
             }
           />

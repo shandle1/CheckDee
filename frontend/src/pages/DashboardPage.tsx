@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { Link } from 'react-router-dom';
 import {
   CheckCircle2,
   Clock,
@@ -8,6 +9,8 @@ import {
   Loader2
 } from 'lucide-react';
 import api from '@/lib/api';
+import { getMapboxTileUrl, getMapboxAttribution } from '@/lib/mapbox';
+import { formatThaiDate } from '@/lib/thaiDate';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
@@ -197,39 +200,41 @@ export default function DashboardPage() {
             ) : recentTasks && recentTasks.length > 0 ? (
               <ul className="space-y-4">
                 {recentTasks.map((task) => (
-                  <li
-                    key={task.id}
-                    className="border-l-4 border-indigo-500 pl-4 py-2 hover:bg-gray-50 transition-colors"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">
-                          {task.title}
-                        </p>
-                        <p className="text-sm text-gray-500 truncate">
-                          Assigned to: {task.assignedTo.name}
-                        </p>
-                        <p className="text-xs text-gray-400 mt-1">
-                          Due: {new Date(task.dueDate).toLocaleDateString()}
-                        </p>
+                  <li key={task.id}>
+                    <Link
+                      to={`/tasks/${task.id}`}
+                      className="block border-l-4 border-indigo-500 pl-4 py-2 hover:bg-gray-50 transition-colors cursor-pointer"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate hover:text-indigo-600">
+                            {task.title}
+                          </p>
+                          <p className="text-sm text-gray-500 truncate">
+                            Assigned to: {task.assignedTo.name}
+                          </p>
+                          <p className="text-xs text-gray-400 mt-1">
+                            Due: {formatThaiDate(task.dueDate, { includeTime: true, shortFormat: true })}
+                          </p>
+                        </div>
+                        <div className="flex flex-col items-end space-y-1 ml-4">
+                          <span
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeColor(
+                              task.status
+                            )}`}
+                          >
+                            {task.status.replace('_', ' ')}
+                          </span>
+                          <span
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPriorityBadgeColor(
+                              task.priority
+                            )}`}
+                          >
+                            {task.priority}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex flex-col items-end space-y-1 ml-4">
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeColor(
-                            task.status
-                          )}`}
-                        >
-                          {task.status.replace('_', ' ')}
-                        </span>
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPriorityBadgeColor(
-                            task.priority
-                          )}`}
-                        >
-                          {task.priority}
-                        </span>
-                      </div>
-                    </div>
+                    </Link>
                   </li>
                 ))}
               </ul>
@@ -258,8 +263,10 @@ export default function DashboardPage() {
                   style={{ height: '100%', width: '100%' }}
                 >
                   <TileLayer
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    attribution={getMapboxAttribution()}
+                    url={getMapboxTileUrl('streets-v12')}
+                    tileSize={512}
+                    zoomOffset={-1}
                   />
                   {taskLocations
                     .filter((task) => task.location)
@@ -273,13 +280,23 @@ export default function DashboardPage() {
                       >
                         <Popup>
                           <div className="p-2">
-                            <h3 className="font-semibold text-sm">{task.title}</h3>
-                            <p className="text-xs text-gray-600 mt-1">
-                              {task.location!.address}
-                            </p>
-                            <p className="text-xs text-gray-500 mt-1">
-                              Status: {task.status}
-                            </p>
+                            <Link
+                              to={`/tasks/${task.id}`}
+                              className="block hover:bg-gray-50 -m-2 p-2 rounded"
+                            >
+                              <h3 className="font-semibold text-sm text-indigo-600 hover:text-indigo-800">
+                                {task.title}
+                              </h3>
+                              <p className="text-xs text-gray-600 mt-1">
+                                {task.location!.address}
+                              </p>
+                              <p className="text-xs text-gray-500 mt-1">
+                                Status: {task.status}
+                              </p>
+                              <div className="mt-2 text-xs text-indigo-600 hover:text-indigo-800 font-medium">
+                                View Details →
+                              </div>
+                            </Link>
                           </div>
                         </Popup>
                       </Marker>

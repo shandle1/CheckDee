@@ -43,9 +43,9 @@ CREATE TABLE tasks (
     location_longitude DECIMAL(11, 8) NOT NULL,
     location_notes TEXT,
     geofence_radius INTEGER DEFAULT 100,
-    assigned_to UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    assigned_to UUID REFERENCES users(id) ON DELETE CASCADE,
     due_date TIMESTAMP NOT NULL,
-    priority VARCHAR(50) DEFAULT 'normal' CHECK (priority IN ('low', 'normal', 'high', 'urgent')),
+    priority VARCHAR(50) DEFAULT 'medium' CHECK (priority IN ('low', 'medium', 'high', 'urgent')),
     status VARCHAR(50) DEFAULT 'assigned' CHECK (status IN ('assigned', 'in_progress', 'completed', 'approved', 'rejected')),
     before_photos_count INTEGER DEFAULT 2,
     before_photos_instructions TEXT,
@@ -215,3 +215,71 @@ CREATE TRIGGER update_task_submissions_updated_at BEFORE UPDATE ON task_submissi
 
 CREATE TRIGGER update_task_templates_updated_at BEFORE UPDATE ON task_templates
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- System settings table for configurable platform settings
+CREATE TABLE IF NOT EXISTS system_settings (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  category VARCHAR(100) NOT NULL,
+  key VARCHAR(100) NOT NULL,
+  value TEXT NOT NULL,
+  data_type VARCHAR(50) NOT NULL DEFAULT 'string', -- string, number, boolean, json
+  description TEXT,
+  is_public BOOLEAN DEFAULT false, -- if true, accessible to non-admin users
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(category, key)
+);
+
+-- Create index for faster lookups
+CREATE INDEX idx_system_settings_category ON system_settings(category);
+CREATE INDEX idx_system_settings_key ON system_settings(key);
+
+-- Create trigger for updated_at
+CREATE TRIGGER update_system_settings_updated_at
+  BEFORE UPDATE ON system_settings
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+-- Task types table for task categorization with default settings
+CREATE TABLE IF NOT EXISTS task_types (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name VARCHAR(100) NOT NULL UNIQUE,
+  description TEXT,
+  icon VARCHAR(50), -- icon name for UI display
+  color VARCHAR(50) DEFAULT '#3B82F6', -- hex color for UI
+
+  -- Default settings for tasks of this type
+  default_priority VARCHAR(20) DEFAULT 'normal',
+  default_geofence_radius INTEGER DEFAULT 100,
+  default_before_photos INTEGER DEFAULT 2,
+  default_after_photos INTEGER DEFAULT 2,
+  requires_checklist BOOLEAN DEFAULT false,
+  requires_questions BOOLEAN DEFAULT false,
+
+  -- Time estimates
+  estimated_duration_minutes INTEGER, -- estimated time to complete
+
+  -- Quality settings
+  min_quality_score INTEGER DEFAULT 70,
+
+  -- Status
+  is_active BOOLEAN DEFAULT true,
+
+  -- Metadata
+  created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Add task_type_id to tasks table
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS task_type_id UUID REFERENCES task_types(id) ON DELETE SET NULL;
+
+-- Create index for faster lookups
+CREATE INDEX IF NOT EXISTS idx_task_types_active ON task_types(is_active);
+CREATE INDEX IF NOT EXISTS idx_tasks_type_id ON tasks(task_type_id);
+
+-- Create trigger for updated_at
+CREATE TRIGGER update_task_types_updated_at
+  BEFORE UPDATE ON task_types
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();

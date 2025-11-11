@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useNavigate } from 'react-router-dom';
 import {
   Plus,
   Search,
@@ -11,6 +12,7 @@ import {
   Users as UsersIcon,
   AlertCircle,
   X,
+  Eye,
 } from 'lucide-react';
 import api from '@/lib/api';
 
@@ -28,7 +30,7 @@ interface Team {
 
 const teamSchema = z.object({
   name: z.string().min(1, 'Team name is required'),
-  description: z.string().min(1, 'Description is required'),
+  description: z.string().optional(),
   memberIds: z.array(z.string()).optional(),
 });
 
@@ -42,6 +44,7 @@ interface User {
 }
 
 export default function TeamsPage() {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -163,7 +166,8 @@ export default function TeamsPage() {
           {filteredTeams.map((team) => (
             <div
               key={team.id}
-              className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow"
+              className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow cursor-pointer"
+              onClick={() => navigate(`/teams/${team.id}`)}
             >
               <div className="flex justify-between items-start mb-4">
                 <div>
@@ -174,15 +178,13 @@ export default function TeamsPage() {
                     {team.description}
                   </p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                   <button
-                    onClick={() => {
-                      setSelectedTeam(team);
-                      setShowEditModal(true);
-                    }}
+                    onClick={() => navigate(`/teams/${team.id}`)}
                     className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    title="View Details"
                   >
-                    <Edit className="h-4 w-4" />
+                    <Eye className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => {
@@ -190,6 +192,7 @@ export default function TeamsPage() {
                       setShowDeleteModal(true);
                     }}
                     className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Delete Team"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>

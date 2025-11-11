@@ -12,11 +12,14 @@ dotenv.config();
 
 // Import routes
 import authRoutes from './routes/auth.routes.js';
+import lineRoutes from './routes/line.routes.js';
 import usersRoutes from './routes/users.routes.js';
 import teamsRoutes from './routes/teams.routes.js';
 import tasksRoutes from './routes/tasks.routes.js';
 import submissionsRoutes from './routes/submissions.routes.js';
 import dashboardRoutes from './routes/dashboard.routes.js';
+import settingsRoutes from './routes/settings.routes.js';
+import analyticsRoutes from './routes/analytics.routes.js';
 
 // Import middleware
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
@@ -58,11 +61,14 @@ app.get('/health', (req, res) => {
 
 // API Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/line', lineRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/teams', teamsRoutes);
 app.use('/api/tasks', tasksRoutes);
 app.use('/api/submissions', submissionsRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/settings', settingsRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 // Socket.io connection handling
 io.on('connection', (socket) => {

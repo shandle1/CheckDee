@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { initLiff, isLoggedIn, login, getLiffProfile, getAccessToken } from '@/lib/liff';
+import { initLiff, isLoggedIn, login, getLiffProfile } from '@/lib/liff';
 import { useAuthStore } from '@/store/authStore';
-import { authenticateWithLINE } from '@/services/linkService';
 
 // Pages
 import TasksPage from '@/pages/TasksPage';
@@ -10,58 +9,33 @@ import TaskDetailPage from '@/pages/TaskDetailPage';
 import CheckInPage from '@/pages/CheckInPage';
 import SubmissionPage from '@/pages/SubmissionPage';
 import ProfilePage from '@/pages/ProfilePage';
-import LinkAccountPage from '@/pages/LinkAccountPage';
 
 // Components
 import { Loader2 } from 'lucide-react';
 
-function AppWithLINEAuth() {
+function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [needsLinking, setNeedsLinking] = useState(false);
-  const { setProfile, setAuthenticated, setInitialized, setLinked } = useAuthStore();
+  const { setProfile, setAuthenticated, setInitialized } = useAuthStore();
 
   useEffect(() => {
     const init = async () => {
       try {
-        // Initialize LIFF
         await initLiff();
         setInitialized(true);
 
-        // Check if logged in to LINE
         if (!isLoggedIn()) {
           login();
           return;
         }
 
-        // Get LINE profile
-        const lineProfile = await getLiffProfile();
-        if (lineProfile) {
-          setProfile(lineProfile);
-        }
-
-        // Get LIFF access token
-        const liffToken = getAccessToken();
-        if (!liffToken) {
-          throw new Error('Failed to get LIFF access token');
-        }
-
-        // Authenticate with backend
-        const authResponse = await authenticateWithLINE(liffToken);
-
-        if (authResponse.linked && authResponse.accessToken && authResponse.refreshToken) {
-          // Account is linked - store tokens and proceed
-          localStorage.setItem('accessToken', authResponse.accessToken);
-          localStorage.setItem('refreshToken', authResponse.refreshToken);
+        const profile = await getLiffProfile();
+        if (profile) {
+          setProfile(profile);
           setAuthenticated(true);
-          setLinked(true);
-          setLoading(false);
-        } else {
-          // Account not linked - show linking page
-          setNeedsLinking(true);
-          setLinked(false);
-          setLoading(false);
         }
+
+        setLoading(false);
       } catch (err) {
         console.error('LIFF initialization error:', err);
         setError('Failed to initialize LINE app. Please try again.');
@@ -70,7 +44,7 @@ function AppWithLINEAuth() {
     };
 
     init();
-  }, [setProfile, setAuthenticated, setInitialized, setLinked]);
+  }, [setProfile, setAuthenticated, setInitialized]);
 
   if (loading) {
     return (
@@ -96,7 +70,7 @@ function AppWithLINEAuth() {
           <p className="text-gray-600 mb-4">{error}</p>
           <button
             onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-line-green text-white rounded-lg hover:bg-green-600 transition-colors"
+            className="btn btn-primary"
           >
             Try Again
           </button>
@@ -105,18 +79,6 @@ function AppWithLINEAuth() {
     );
   }
 
-  // If account needs linking, show link page
-  if (needsLinking) {
-    return (
-      <BrowserRouter>
-        <Routes>
-          <Route path="*" element={<LinkAccountPage />} />
-        </Routes>
-      </BrowserRouter>
-    );
-  }
-
-  // Account is linked - show normal app
   return (
     <BrowserRouter>
       <Routes>
@@ -131,4 +93,4 @@ function AppWithLINEAuth() {
   );
 }
 
-export default AppWithLINEAuth;
+export default App;
